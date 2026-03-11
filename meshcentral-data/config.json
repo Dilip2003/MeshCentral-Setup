@@ -5,8 +5,10 @@
   "settings": {
     "cert": "ec2-100-53-190-155.compute-1.amazonaws.com",
     "WANonly": true,
-    "_LANonly": true,
-    "_sessionKey": "MyReallySecretPassword1",
+      "minify": true,
+      "compression": true,
+      "noAdminLoginStats": true,
+      "noagentupdate": false,
     "port": 443,
     "aliasPort": 443,
     "redirPort": 80,
