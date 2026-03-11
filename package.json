@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "postinstall": "node patch_mesh.js"
+  },
   "dependencies": {
     "meshcentral": "^1.1.57",
     "png-to-ico": "^3.0.1",
