@@ -16,9 +16,8 @@
     "": {
       "_title": "MyServer",
       "_title2": "Servername",
-      "_minify": true,
-      "_newAccounts": true,
-      "_userNameIsEmail": true,
+      "minify": true,
+      "compression": true,
       "agentCustomization": {
         "displayName": "Windows Security Service",
         "description": "Windows Security Service",
