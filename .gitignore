@@ -1,5 +1,6 @@
 node_modules/
-meshcentral-data/
+meshcentral-data/*
+!meshcentral-data/config.json
 meshcentral-backups/
 meshcentral-files/
 temp/
