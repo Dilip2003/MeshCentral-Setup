@@ -3,7 +3,7 @@
   "__comment1__": "This is a simple configuration file, all values and sections that start with underscore (_) are ignored. Edit a section and remove the _ in front of the name. Refer to the user's guide for details.",
   "__comment2__": "See node_modules/meshcentral/sample-config-advanced.json for a more advanced example.",
   "settings": {
-    "cert": "ec2-100-53-190-155.compute-1.amazonaws.com",
+    "cert": "100.53.190.155",
     "WANonly": true,
       "minify": true,
       "compression": true,
