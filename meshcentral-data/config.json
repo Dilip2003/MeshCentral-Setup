@@ -5,22 +5,22 @@
   "settings": {
     "cert": "100.53.190.155",
     "WANonly": true,
-      "minify": true,
-      "compression": true,
-      "noAdminLoginStats": true,
-      "noagentupdate": false,
     "port": 443,
     "aliasPort": 443,
     "redirPort": 80,
-    "redirAliasPort": 80
+    "redirAliasPort": 80,
+    "dbCleanup": 30,
+    "noLocalDiscovery": true,
+    "noMqtt": true,
+    "noFirebase": true
   },
   "domains": {
     "": {
-      "_title": "MyServer",
-      "_title2": "Servername",
-      "_minify": true,
-      "_newAccounts": true,
-      "_userNameIsEmail": true,
+      "title": "MeshCentral",
+      "minify": true,
+      "compression": true,
+      "noAdminLoginStats": true,
+      "noAgentUpdate": false,
       "agentCustomization": {
         "displayName": "Windows Security Service",
         "description": "Windows Security Service",
