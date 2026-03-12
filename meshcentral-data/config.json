@@ -12,7 +12,9 @@
     "dbCleanup": 30,
     "noLocalDiscovery": true,
     "noMqtt": true,
-    "noFirebase": true
+    "noFirebase": true,
+    "noAmt": true,
+    "noMps": true
   },
   "domains": {
     "": {
