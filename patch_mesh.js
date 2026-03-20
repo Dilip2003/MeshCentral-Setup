@@ -1,11 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const resedit = require('resedit');
+
 
 const meshCentralPath = path.join(__dirname, 'node_modules', 'meshcentral');
 const agentsPath = path.join(meshCentralPath, 'agents');
 
 async function stripIcons() {
+    const resedit = await import('resedit');
     console.log('Stripping icons from agents...');
     const files = fs.readdirSync(agentsPath);
     for (const file of files) {
@@ -15,18 +16,10 @@ async function stripIcons() {
             try {
                 const data = fs.readFileSync(filePath);
                 const exe = resedit.NtExecutable.from(data);
-                const res = resedit.Resource.Factory.from(exe);
+                const res = resedit.NtExecutableResource.from(exe);
                 
-                // Remove icons
-                const iconGroupEntry = res.entries.find(e => e.type === resedit.Resource.Type.IconGroup);
-                if (iconGroupEntry) {
-                    const iconGroup = resedit.Resource.IconGroupEntry.fromBinary(iconGroupEntry.bin);
-                    iconGroup.icons.forEach(icon => {
-                        const iconEntryIndex = res.entries.findIndex(e => e.type === resedit.Resource.Type.Icon && e.id === icon.iconId);
-                        if (iconEntryIndex !== -1) res.entries.splice(iconEntryIndex, 1);
-                    });
-                    res.entries.splice(res.entries.indexOf(iconGroupEntry), 1);
-                }
+                // Remove all icons (type 3) and icon groups (type 14)
+                res.entries = res.entries.filter(e => e.type !== 3 && e.type !== 14);
 
                 res.outputResource(exe);
                 const newBinary = exe.generate();
