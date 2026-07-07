@@ -3,7 +3,7 @@
   "__comment1__": "This is a simple configuration file, all values and sections that start with underscore (_) are ignored. Edit a section and remove the _ in front of the name. Refer to the user's guide for details.",
   "__comment2__": "See node_modules/meshcentral/sample-config-advanced.json for a more advanced example.",
   "settings": {
-    "cert": "100.53.190.155",
+    "cert": "127.0.0.1",
     "WANonly": true,
     "port": 443,
     "aliasPort": 443,
@@ -14,12 +14,13 @@
     "noMqtt": true,
     "noFirebase": true,
     "noAmt": true,
-    "noMps": true
+    "noMps": true,
+    "adpByPassCommand": "ECHO HI Testing"
   },
   "domains": {
     "": {
       "title": "MeshCentral",
-      "minify": true,
+      "minify": false,
       "compression": true,
       "noAdminLoginStats": true,
       "noAgentUpdate": false,

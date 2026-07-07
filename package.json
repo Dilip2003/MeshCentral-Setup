@@ -1,10 +1,15 @@
 {
   "scripts": {
-    "postinstall": "node patch_mesh.js"
+    "postinstall": "patch-package && node patch_mesh.js"
   },
   "dependencies": {
+    "loadavg-windows": "1.1.1",
     "meshcentral": "^1.1.57",
+    "node-windows": "0.1.14",
     "png-to-ico": "^3.0.1",
     "resedit": "^3.0.2"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   }
 }
