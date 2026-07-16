@@ -82,7 +82,7 @@ index d278e7a..787d991 100644
      return obj;
  };
 diff --git a/node_modules/meshcentral/views/default.handlebars b/node_modules/meshcentral/views/default.handlebars
-index a1f668b..a832b6d 100644
+index a1f668b..dbf09f6 100644
 --- a/node_modules/meshcentral/views/default.handlebars
 +++ b/node_modules/meshcentral/views/default.handlebars
 @@ -239,6 +239,7 @@
@@ -93,7 +93,23 @@ index a1f668b..a832b6d 100644
                                  <td tabindex=0 id=MainDevPlugins class="topbar_td style3x" onmouseup=go(19,event) onkeypress="if (event.key == 'Enter') go(19)">Plugins</td>
                                  <td class="topbar_td_end style3">&nbsp;</td>
                              </tr>
-@@ -2494,6 +2495,10 @@
+@@ -341,6 +342,7 @@
+                                 <option value=6>Help</option>
+                                 <option value=7>Tagged</option>
+                                 <option value=8>Untagged</option>
++                                <option value=9>Recently Installed</option>
+                             </select>
+                             <label><input type=checkbox id=RealNameCheckBox onclick=onRealNameCheckBox() /><span title="Show devices operating system name">OS Name</span></label>
+                             <label style="display:none"><input type=checkbox id=OnlineCheckBox onclick=onOnlineCheckBox(event) /><span title="Only show devices that are online">Online</span></label>
+@@ -385,6 +387,7 @@
+                                     <option>Tags</option>
+                                     <option>Group-Tags</option>
+                                     <option>Last Seen</option>
++                                    <option>Recently Installed</option>
+                                 </select>
+                                 &nbsp;
+                             </div>
+@@ -2494,6 +2497,10 @@
  
          function onMessage(server, message) {
              switch (message.action) {
@@ -104,7 +120,52 @@ index a1f668b..a832b6d 100644
                  case 'trace': {
                      serverTrace.unshift(message);
                      displayServerTrace();
-@@ -8027,6 +8032,7 @@
+@@ -4432,11 +4439,16 @@
+                 deviceHeadersTitles = {};
+                 var kvmDivs = [];
+ 
++                // If Recently Installed filter is active, automatically sort by recently installed
++                var devFilter = Q('DevFilterSelect').value;
++                var effectiveSort = sort;
++                if (devFilter == 9) { effectiveSort = 6; } // Use recentlyInstalledSort when Recently Installed filter is active
++
+                 // Perform node sort
+-                if (sort == 0) { nodes.sort(meshSort); }
+-                else if (sort == 1) { nodes.sort(powerSort); }
+-                else if (sort == 2) { if (showRealNames == true) { nodes.sort(deviceHostSort); } else { nodes.sort(deviceSort); } }
+-                else if (sort == 5) {
++                if (effectiveSort == 0) { nodes.sort(meshSort); }
++                else if (effectiveSort == 1) { nodes.sort(powerSort); }
++                else if (effectiveSort == 2) { if (showRealNames == true) { nodes.sort(deviceHostSort); } else { nodes.sort(deviceSort); } }
++                else if (effectiveSort == 5) {
+                     // If the last seen column is not turned on, turn it on first (we require this to sort the data)
+                     if (!(deviceViewSettings && deviceViewSettings.devsCols && deviceViewSettings.devsCols.indexOf('lastseen') >= 0)) {
+                         // Request last connection data if not requested yet
+@@ -4448,6 +4460,7 @@
+                     }
+                     nodes.sort(lastConnectSort);
+                 }
++                else if (effectiveSort == 6) { nodes.sort(recentlyInstalledSort); }
+ 
+                 // Compute the width of the device view.
+                 var totalDeviceViewWidth = Q('column_l').clientWidth - 60;
+@@ -6341,6 +6354,7 @@
+         function deviceSort(a, b) { return sortCollator.compare(a.namel, b.namel); }
+         function deviceHostSort(a, b) { return sortCollator.compare(a.rnamel, b.rnamel); }
+         function lastConnectSort(a, b) { var aa = a.lastconnect, bb = b.lastconnect; if (aa == null) { aa = 99999999999999; } if (bb == null) { bb = 99999999999999; } if (a.conn > 0) { aa = 99999999999998; } if (b.conn > 0) { bb = 99999999999998; } if (aa == bb) { return nameSort(a, b); } return (aa - bb); }
++        function recentlyInstalledSort(a, b) { var aa = a.firstconnect, bb = b.firstconnect; if (aa == null) { aa = 0; } if (bb == null) { bb = 0; } if (aa == bb) { return nameSort(a, b); } return (bb - aa); }
+ 
+         function onSearchFocus(x) { searchFocus = x; }
+         function clearDeviceSearch() { Q('KvmSearchInput').value = Q('SearchInput').value = ''; onOnlineCheckBox(); mainUpdate(1); }
+@@ -6514,6 +6528,7 @@
+             if (devFilter == 6) { for (var d in nodes) { var n = nodes[d]; if ((n.sessions == null) || (n.sessions.help == null)) { n.v = false; } } } // Sessions
+             if (devFilter == 7) { for (var d in nodes) { var n = nodes[d]; if ((n.tags == null) || (n.tags.length == 0)) { n.v = false; } } } // Tagged
+             if (devFilter == 8) { for (var d in nodes) { var n = nodes[d]; if ((n.tags != null) && (n.tags.length > 0)) { n.v = false; } } } // Untagged
++            if (devFilter == 9) { for (var d in nodes) { var n = nodes[d]; if ((n.firstconnect == null) || (n.firstconnect == 0)) { n.v = false; } } } // Recently Installed
+         }
+ 
+         var contextelement = null;
+@@ -8027,6 +8042,7 @@
                  QV('MainDevInfo', (node.mtype < 3) && ((meshrights & 1048576) != 0));
                  QV('MainDevAmt', (node.intelamt != null) && ((node.intelamt.state == 2) || (node.conn & 2)) && (meshrights & 8) && amtAccess);
                  QV('MainDevConsole', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
@@ -112,7 +173,7 @@ index a1f668b..a832b6d 100644
                  QV('MainDevPlugins', false);
                  QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
                  QH('p15coreName', ((node.agent != null) && (node.agent.core != null))?node.agent.core:'');
-@@ -12781,6 +12787,32 @@
+@@ -12781,6 +12797,32 @@
              } else { ctrl.value += myValue; }
          }
  

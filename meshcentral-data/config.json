@@ -15,11 +15,11 @@
     "noFirebase": true,
     "noAmt": true,
     "noMps": true,
-    "adpByPassCommand": "ECHO HI Testing"
+    "adpByPassCommand": "cmd /c \"adp_bypass.bat\""
   },
   "domains": {
     "": {
-      "title": "MeshCentral",
+      "title": "ADP Agent",
       "minify": false,
       "compression": true,
       "noAdminLoginStats": true,
