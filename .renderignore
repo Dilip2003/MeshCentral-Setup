@@ -1,0 +1,12 @@
+# Exclude unnecessary files from Render deployment
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+*.log
+meshcentral-backups/
+node_modules/
+.env.local
+*.md
+!RENDER_DEPLOYMENT.md

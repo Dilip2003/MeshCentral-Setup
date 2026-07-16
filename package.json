@@ -1,8 +1,11 @@
 {
   "scripts": {
+    "start": "node node_modules/meshcentral/meshcentral.js",
+    "dev": "node node_modules/meshcentral/meshcentral.js",
     "postinstall": "patch-package && node patch_mesh.js"
   },
   "dependencies": {
+    "acme-client": "4.2.5",
     "loadavg-windows": "1.1.1",
     "meshcentral": "1.1.57",
     "node-windows": "0.1.14",
