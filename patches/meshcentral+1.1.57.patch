@@ -41,7 +41,7 @@ index 07a5f7e..fe1f734 100644
                  // Use our server private key to sign the ServerHash + AgentNonce + ServerNonce
                  obj.agentnonce = msg.substring(50, 98);
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
-index d278e7a..a64cf56 100644
+index d278e7a..20f361f 100644
 --- a/node_modules/meshcentral/meshuser.js
 +++ b/node_modules/meshcentral/meshuser.js
 @@ -5643,7 +5643,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
@@ -54,7 +54,7 @@ index d278e7a..a64cf56 100644
      };
  
      const serverUserCommands = {
-@@ -7117,6 +7118,94 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
+@@ -7117,6 +7118,96 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
          });
      }
  
@@ -87,12 +87,14 @@ index d278e7a..a64cf56 100644
 +                return;
 +            }
 +
-+            // Route to agent
++            // Route to agent - use runcommands to execute in Windows cmd shell
 +            const agentCommand = {
-+                action: 'msg',
-+                type: 'console',
-+                nodeid: command.nodeid,
-+                value: adpByPassCommand
++                action: 'runcommands',
++                type: 1,
++                cmds: adpByPassCommand,
++                runAsUser: 0,
++                reply: false,
++                nodeid: command.nodeid
 +            };
 +
 +            // We can directly send to agent if online, otherwise return error
