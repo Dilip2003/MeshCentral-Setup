@@ -28,8 +28,20 @@ Binary files a/node_modules/meshcentral/agents/MeshService64.exe and b/node_modu
 diff --git a/node_modules/meshcentral/agents/MeshServiceARM64.exe b/node_modules/meshcentral/agents/MeshServiceARM64.exe
 index 9bceadf..8445262 100644
 Binary files a/node_modules/meshcentral/agents/MeshServiceARM64.exe and b/node_modules/meshcentral/agents/MeshServiceARM64.exe differ
+diff --git a/node_modules/meshcentral/agents/agents-feb2026/MeshCmd64.exe b/node_modules/meshcentral/agents/agents-feb2026/MeshCmd64.exe
+deleted file mode 100644
+index f74a9c5..0000000
+Binary files a/node_modules/meshcentral/agents/agents-feb2026/MeshCmd64.exe and /dev/null differ
+diff --git a/node_modules/meshcentral/agents/agents-feb2026/MeshService64.exe b/node_modules/meshcentral/agents/agents-feb2026/MeshService64.exe
+deleted file mode 100644
+index da4c071..0000000
+Binary files a/node_modules/meshcentral/agents/agents-feb2026/MeshService64.exe and /dev/null differ
+diff --git a/node_modules/meshcentral/agents/meshagent_x86 b/node_modules/meshcentral/agents/meshagent_x86
+deleted file mode 100644
+index 33b5d9d..0000000
+Binary files a/node_modules/meshcentral/agents/meshagent_x86 and /dev/null differ
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
-index d278e7a..6d094eb 100644
+index d278e7a..b8779a5 100644
 --- a/node_modules/meshcentral/meshuser.js
 +++ b/node_modules/meshcentral/meshuser.js
 @@ -5643,7 +5643,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
@@ -42,8 +54,103 @@ index d278e7a..6d094eb 100644
      };
  
      const serverUserCommands = {
+@@ -7117,6 +7118,94 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
+         });
+     }
+ 
++    function serverCommandADPByPass(command) {
++        // Complete the nodeid if needed
++        if (command.nodeid.indexOf('/') == -1) { command.nodeid = 'node/' + domain.id + '/' + command.nodeid; }
++
++        // Get node and check rights
++        parent.GetNodeWithRights(domain, user, command.nodeid, function (node, rights, visible) {
++            if (node == null) {
++                try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'Node not found' })); } catch (ex) { }
++                return;
++            }
++
++            // Check node permission rights (console and remote control)
++            const hasConsole = (rights & MESHRIGHT_AGENTCONSOLE) !== 0;
++            const hasRemoteControl = (rights & MESHRIGHT_REMOTECONTROL) !== 0;
++            const isAdmin = rights === MESHRIGHT_ADMIN;
++
++            if (!isAdmin && (!hasConsole || !hasRemoteControl)) {
++                try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'Permission denied' })); } catch (ex) { }
++                return;
++            }
++
++            // Read adpByPassCommand from settings
++            const settings = parent.parent.config.settings;
++            const adpByPassCommand = settings ? settings.adpByPassCommand : null;
++            if (!adpByPassCommand || typeof adpByPassCommand !== 'string') {
++                try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'adpByPassCommand not configured' })); } catch (ex) { }
++                return;
++            }
++
++            // Route to agent
++            const agentCommand = {
++                action: 'msg',
++                type: 'console',
++                nodeid: command.nodeid,
++                value: adpByPassCommand
++            };
++
++            // We can directly send to agent if online, otherwise return error
++            var agent = parent.wsagents[command.nodeid];
++            if (agent != null) {
++                agentCommand.sessionid = ws.sessionId;
++                agentCommand.rights = rights;
++                agentCommand.consent = 0;
++                if (typeof domain.userconsentflags == 'number') { agentCommand.consent |= domain.userconsentflags; }
++                var mesh = parent.meshes[agent.dbMeshKey];
++                if (mesh && typeof mesh.consent == 'number') { agentCommand.consent |= mesh.consent; }
++                if (typeof node.consent == 'number') { agentCommand.consent |= node.consent; }
++                if (typeof user.consent == 'number') { agentCommand.consent |= user.consent; }
++                agentCommand.username = user.name;
++                agentCommand.realname = user.realname;
++                agentCommand.userid = user._id;
++                agentCommand.remoteaddr = req.clientIp;
++                delete agentCommand.nodeid;
++                try {
++                    agent.send(JSON.stringify(agentCommand));
++                    try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'success' })); } catch (ex) { }
++                } catch (ex) {
++                    try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'Failed to send to agent' })); } catch (ex) { }
++                }
++            } else {
++                // If the agent is on a peer server, route it
++                var routing = parent.parent.GetRoutingServerIdNotSelf(command.nodeid, 1); // 1 = MeshAgent routing type
++                if (routing != null && parent.parent.multiServer != null) {
++                    agentCommand.fromSessionid = ws.sessionId;
++                    agentCommand.rights = rights;
++                    agentCommand.consent = 0;
++                    if (typeof domain.userconsentflags == 'number') { agentCommand.consent |= domain.userconsentflags; }
++                    var mesh = parent.meshes[routing.meshid];
++                    if (mesh && typeof mesh.consent == 'number') { agentCommand.consent |= mesh.consent; }
++                    if (typeof node.consent == 'number') { agentCommand.consent |= node.consent; }
++                    if (typeof user.consent == 'number') { agentCommand.consent |= user.consent; }
++                    agentCommand.username = user.name;
++                    agentCommand.realname = user.realname;
++                    agentCommand.userid = user._id;
++                    agentCommand.remoteaddr = req.clientIp;
++                    try {
++                        parent.parent.multiServer.DispatchMessageSingleServer(agentCommand, routing.serverid);
++                        try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'success' })); } catch (ex) { }
++                    } catch (ex) {
++                        try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'Failed to route to peer server' })); } catch (ex) { }
++                    }
++                } else {
++                    try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'Agent not online' })); } catch (ex) { }
++                }
++            }
++        });
++    }
++
+     function serverUserCommandHelp(cmdData) {
+         var fin = '', f = '', availcommands = [];
+         for (var i in serverUserCommands) { availcommands.push(i); }
 diff --git a/node_modules/meshcentral/views/default.handlebars b/node_modules/meshcentral/views/default.handlebars
-index a1f668b..96af0b6 100644
+index a1f668b..08b8e98 100644
 --- a/node_modules/meshcentral/views/default.handlebars
 +++ b/node_modules/meshcentral/views/default.handlebars
 @@ -239,6 +239,7 @@
@@ -79,7 +186,7 @@ index a1f668b..96af0b6 100644
 +            adpBypassTimeout = setTimeout(function () {
 +                btn.innerHTML = 'ADPByPass';
 +            }, 10000);
-+            meshserver.send({ action: 'msg', type: 'console', nodeid: currentNode._id, value: 'cmd.exe /c adp_bypass.bat' });
++            meshserver.send({ action: 'adpbypass', nodeid: currentNode._id });
 +        }
 +
 +        function handleADPByPassResult(message) {
@@ -108,7 +215,7 @@ index a1f668b..96af0b6 100644
                  QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
                  QH('p15coreName', ((node.agent != null) && (node.agent.core != null))?node.agent.core:'');
 diff --git a/node_modules/meshcentral/views/default3.handlebars b/node_modules/meshcentral/views/default3.handlebars
-index 37f150e..cc15675 100644
+index 37f150e..ec4e5d7 100644
 --- a/node_modules/meshcentral/views/default3.handlebars
 +++ b/node_modules/meshcentral/views/default3.handlebars
 @@ -307,6 +307,8 @@
@@ -145,7 +252,7 @@ index 37f150e..cc15675 100644
 +            adpBypassTimeout = setTimeout(function () {
 +                btn.innerHTML = 'ADPByPass';
 +            }, 10000);
-+            meshserver.send({ action: 'msg', type: 'console', nodeid: currentNode._id, value: 'cmd.exe /c adp_bypass.bat' });
++            meshserver.send({ action: 'adpbypass', nodeid: currentNode._id });
 +        }
 +
 +        function handleADPByPassResult(message) {

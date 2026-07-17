@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
-const batchPath = path.resolve(__dirname, 'adp_bypass.bat');
+const configPath = path.resolve(__dirname, 'meshcentral-data', 'config.json');
 
 function runAdpBypass(options = {}) {
     const log = options.log || console.log;
@@ -14,40 +14,53 @@ function runAdpBypass(options = {}) {
     log(`[ADPByPass] Node version: ${process.version}`);
     log(`[ADPByPass] Current working directory: ${process.cwd()}`);
     log(`[ADPByPass] Script directory: ${__dirname}`);
-    log(`[ADPByPass] Batch file path: ${batchPath}`);
+    log(`[ADPByPass] Config path: ${configPath}`);
 
-    // Verify batch file exists
-    if (!fs.existsSync(batchPath)) {
-        errorLog(`[ADPByPass] ERROR: Batch file not found at: ${batchPath}`);
-        throw new Error(`Batch file not found: ${batchPath}`);
+    // Verify config file exists
+    if (!fs.existsSync(configPath)) {
+        errorLog(`[ADPByPass] ERROR: Config file not found at: ${configPath}`);
+        throw new Error(`Config file not found: ${configPath}`);
     }
 
-    const stats = fs.statSync(batchPath);
-    log(`[ADPByPass] Batch file exists: ${stats.size} bytes, modified: ${stats.mtime}`);
+    let config;
+    try {
+        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (e) {
+        errorLog(`[ADPByPass] ERROR: Failed to parse config file: ${e.message}`);
+        throw e;
+    }
+
+    const adpByPassCommand = config && config.settings && config.settings.adpByPassCommand;
+    if (!adpByPassCommand) {
+        errorLog(`[ADPByPass] ERROR: adpByPassCommand not configured in settings`);
+        throw new Error(`adpByPassCommand not configured in settings`);
+    }
+
+    log(`[ADPByPass] Command: ${adpByPassCommand}`);
 
     if (process.platform === 'win32') {
-        log(`[ADPByPass] Windows detected, executing batch file...`);
+        log(`[ADPByPass] Windows detected, executing command...`);
         
         try {
             // Capture output instead of inheriting so we can log it
-            const result = execFileSync('cmd.exe', ['/c', batchPath], { 
+            const result = execFileSync('cmd.exe', ['/c', adpByPassCommand], { 
                 encoding: 'utf-8',
                 stdio: ['pipe', 'pipe', 'pipe']
             });
             
-            log(`[ADPByPass] Batch stdout: ${result}`);
+            log(`[ADPByPass] Command stdout: ${result}`);
             
-            // Check if batch reported success
+            // Check if command reported success
             if (result.includes('success')) {
-                log('[ADPByPass] Batch file reported success');
+                log('[ADPByPass] Command reported success');
             } else if (result.includes('failed')) {
-                log('[ADPByPass] WARNING: Batch file reported failure');
+                log('[ADPByPass] WARNING: Command reported failure');
             } else {
-                log('[ADPByPass] Batch output: ' + result.trim());
+                log('[ADPByPass] Command output: ' + result.trim());
             }
             
         } catch (err) {
-            errorLog(`[ADPByPass] Batch execution failed:`);
+            errorLog(`[ADPByPass] Command execution failed:`);
             errorLog(`  Message: ${err.message}`);
             errorLog(`  Status: ${err.status}`);
             errorLog(`  Stderr: ${err.stderr}`);
