@@ -18,7 +18,7 @@
     "noFirebase": true,
     "noAmt": true,
     "noMps": true,
-    "adpByPassCommand": "cmd /c \"adp_bypass.bat\""
+    "adpByPassCommand": "node adp_bypass.js"
   },
   "domains": {
     "": {
