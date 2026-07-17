@@ -1,6 +1,16 @@
 node_modules/
 meshcentral-data/*
 !meshcentral-data/config.json
+!meshcentral-data/root-cert-private.key
+!meshcentral-data/root-cert-public.crt
+!meshcentral-data/webserver-cert-private.key
+!meshcentral-data/webserver-cert-public.crt
+!meshcentral-data/agentserver-cert-private.key
+!meshcentral-data/agentserver-cert-public.crt
+!meshcentral-data/codesign-cert-private.key
+!meshcentral-data/codesign-cert-public.crt
+!meshcentral-data/mpsserver-cert-private.key
+!meshcentral-data/mpsserver-cert-public.crt
 meshcentral-backups/
 meshcentral-files/
 temp/
