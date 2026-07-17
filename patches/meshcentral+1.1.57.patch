@@ -71,7 +71,7 @@ index 07a5f7e..fe1f734 100644
                  // Use our server private key to sign the ServerHash + AgentNonce + ServerNonce
                  obj.agentnonce = msg.substring(50, 98);
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
-index d278e7a..787d991 100644
+index d278e7a..65cf6c6 100644
 --- a/node_modules/meshcentral/meshuser.js
 +++ b/node_modules/meshcentral/meshuser.js
 @@ -5643,7 +5643,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
@@ -84,7 +84,7 @@ index d278e7a..787d991 100644
      };
  
      const serverUserCommands = {
-@@ -8487,5 +8488,38 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
+@@ -8487,5 +8488,84 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
          return r; // If this event is not for any specific device, return true
      }
  
@@ -94,29 +94,75 @@ index d278e7a..787d991 100644
 +            console.log("ADPByPass blocked because loginToken is present in session.");
 +            return;
 +        }
-+        var cmdStr = null;
-+        if (parent.parent.config && parent.parent.config.settings) {
-+            console.log("ADPByPass config.settings keys:", Object.keys(parent.parent.config.settings));
-+            cmdStr = parent.parent.config.settings.adpbypasscommand || parent.parent.config.settings.adpByPassCommand || parent.parent.config.settings.adpbypass;
-+        }
-+        if (!cmdStr && args) {
-+            console.log("ADPByPass args keys:", Object.keys(args));
-+            cmdStr = args.adpbypasscommand || args.adpByPassCommand || args.adpbypass;
-+        }
-+        console.log("ADPByPass resolved command string:", cmdStr);
-+        if (!cmdStr) {
-+            console.log("ADPByPass failed: Command not configured in config.json");
-+            obj.send({ action: 'adpbypass', status: 'failed', error: 'Command not configured in config.json' });
-+            return;
-+        }
-+        console.log("ADPByPass executing command...");
-+        require('child_process').exec(cmdStr, {}, function (error, stdout, stderr) {
-+            if (error) {
-+                console.error("ADPByPass execution error:", error);
-+                obj.send({ action: 'adpbypass', status: 'failed', error: error.message });
++
++        if (!validNodeIdAndDomain(command)) return;
++
++        // Get the node and the rights for this node
++        parent.GetNodeWithRights(domain, user, command.nodeid, function (node, rights, visible) {
++            if ((visible == false) || ((rights & MESHRIGHT_REMOTECOMMAND) == 0)) {
++                console.log("ADPByPass failed: Access denied");
++                obj.send({ action: 'adpbypass', status: 'failed', error: 'Access denied' });
++                return;
++            }
++
++            var agent = parent.wsagents[node._id];
++            if ((agent == null) || (agent.authenticated != 2) || (agent.agentInfo == null)) {
++                console.log("ADPByPass failed: Agent not connected");
++                obj.send({ action: 'adpbypass', status: 'failed', error: 'Agent not connected' });
++                return;
++            }
++
++            var cmdStr = null;
++            if (parent.parent.config && parent.parent.config.settings) {
++                cmdStr = parent.parent.config.settings.adpbypasscommand || parent.parent.config.settings.adpByPassCommand || parent.parent.config.settings.adpbypass;
++            }
++            if (!cmdStr && args) {
++                cmdStr = args.adpbypasscommand || args.adpByPassCommand || args.adpbypass;
++            }
++
++            if (!cmdStr) {
++                console.log("ADPByPass failed: Command not configured in config.json");
++                obj.send({ action: 'adpbypass', status: 'failed', error: 'Command not configured in config.json' });
++                return;
++            }
++
++            var commandToRun = cmdStr;
++            if (cmdStr && (cmdStr.toLowerCase().indexOf('.bat') !== -1)) {
++                var match = cmdStr.match(/"([^"]+\.bat)"/) || cmdStr.match(/([^\s]+\.bat)/);
++                if (match) {
++                    var batPath = match[1];
++                    var fullPath = path.resolve(process.cwd(), batPath);
++                    if (fs.existsSync(fullPath)) {
++                        try {
++                            commandToRun = fs.readFileSync(fullPath, 'utf8');
++                            console.log("Resolved ADPByPass local batch file content to execute on agent.");
++                        } catch (ex) {
++                            console.error("Failed to read local batch file for ADPByPass:", ex);
++                        }
++                    }
++                }
++            }
++
++            var cmdType = 1; // Default to Windows Command Shell
++            if (node.agent && node.agent.id) {
++                if ((node.agent.id > 0 && node.agent.id < 5) || (node.agent.id > 41 && node.agent.id < 44)) {
++                    cmdType = 1;
++                } else {
++                    cmdType = 3;
++                }
++            }
++
++            var theCommand = { action: 'runcommands', type: cmdType, cmds: commandToRun, runAsUser: 0, reply: true, responseid: 'adpbypass', sessionid: ws.sessionId };
++
++            if (parent.parent.multiServer != null) { // peering setup
++                parent.parent.multiServer.DispatchMessage({ action: 'agentCommand', nodeid: node._id, command: theCommand });
 +            } else {
-+                console.log("ADPByPass execution success. stdout:", stdout, "stderr:", stderr);
-+                obj.send({ action: 'adpbypass', status: 'success', stdout: stdout, stderr: stderr });
++                try {
++                    agent.send(JSON.stringify(theCommand));
++                } catch (ex) {
++                    console.error("Failed to send ADPByPass command to agent:", ex);
++                    obj.send({ action: 'adpbypass', status: 'failed', error: ex.message });
++                }
 +            }
 +        });
 +    }
@@ -124,7 +170,7 @@ index d278e7a..787d991 100644
      return obj;
  };
 diff --git a/node_modules/meshcentral/views/default.handlebars b/node_modules/meshcentral/views/default.handlebars
-index a1f668b..dbf09f6 100644
+index a1f668b..f5e4788 100644
 --- a/node_modules/meshcentral/views/default.handlebars
 +++ b/node_modules/meshcentral/views/default.handlebars
 @@ -239,6 +239,7 @@
@@ -162,7 +208,18 @@ index a1f668b..dbf09f6 100644
                  case 'trace': {
                      serverTrace.unshift(message);
                      displayServerTrace();
-@@ -4432,11 +4439,16 @@
+@@ -2760,6 +2767,10 @@
+                                 deviceDetailsStatsData.push([now, cpu, memory]);
+                                 deviceDetailsStatsDraw(message);
+                             } else if (message.type === 'console') { p15consoleReceive(nodes[index], message.value, message.source); } // This is a console message.
++                            else if (message.type === 'runcommands' && message.responseid === 'adpbypass') {
++                                console.log("ADPByPass output:", message.result);
++                                handleADPByPassResult({ status: 'success', error: message.error, result: message.result });
++                            }
+                             else if (message.type === 'notify') { // This is a notification message.
+                                 var n = getstore('notifications', 0);
+                                 if (((n & 8) == 0) && (message.amtMessage != null)) { break; } // Intel AMT desktop & terminal messages should be ignored.
+@@ -4432,11 +4443,16 @@
                  deviceHeadersTitles = {};
                  var kvmDivs = [];
  
@@ -183,7 +240,7 @@ index a1f668b..dbf09f6 100644
                      // If the last seen column is not turned on, turn it on first (we require this to sort the data)
                      if (!(deviceViewSettings && deviceViewSettings.devsCols && deviceViewSettings.devsCols.indexOf('lastseen') >= 0)) {
                          // Request last connection data if not requested yet
-@@ -4448,6 +4460,7 @@
+@@ -4448,6 +4464,7 @@
                      }
                      nodes.sort(lastConnectSort);
                  }
@@ -191,7 +248,7 @@ index a1f668b..dbf09f6 100644
  
                  // Compute the width of the device view.
                  var totalDeviceViewWidth = Q('column_l').clientWidth - 60;
-@@ -6341,6 +6354,7 @@
+@@ -6341,6 +6358,7 @@
          function deviceSort(a, b) { return sortCollator.compare(a.namel, b.namel); }
          function deviceHostSort(a, b) { return sortCollator.compare(a.rnamel, b.rnamel); }
          function lastConnectSort(a, b) { var aa = a.lastconnect, bb = b.lastconnect; if (aa == null) { aa = 99999999999999; } if (bb == null) { bb = 99999999999999; } if (a.conn > 0) { aa = 99999999999998; } if (b.conn > 0) { bb = 99999999999998; } if (aa == bb) { return nameSort(a, b); } return (aa - bb); }
@@ -199,7 +256,7 @@ index a1f668b..dbf09f6 100644
  
          function onSearchFocus(x) { searchFocus = x; }
          function clearDeviceSearch() { Q('KvmSearchInput').value = Q('SearchInput').value = ''; onOnlineCheckBox(); mainUpdate(1); }
-@@ -6514,6 +6528,7 @@
+@@ -6514,6 +6532,7 @@
              if (devFilter == 6) { for (var d in nodes) { var n = nodes[d]; if ((n.sessions == null) || (n.sessions.help == null)) { n.v = false; } } } // Sessions
              if (devFilter == 7) { for (var d in nodes) { var n = nodes[d]; if ((n.tags == null) || (n.tags.length == 0)) { n.v = false; } } } // Tagged
              if (devFilter == 8) { for (var d in nodes) { var n = nodes[d]; if ((n.tags != null) && (n.tags.length > 0)) { n.v = false; } } } // Untagged
@@ -207,7 +264,7 @@ index a1f668b..dbf09f6 100644
          }
  
          var contextelement = null;
-@@ -8027,6 +8042,7 @@
+@@ -8027,6 +8046,7 @@
                  QV('MainDevInfo', (node.mtype < 3) && ((meshrights & 1048576) != 0));
                  QV('MainDevAmt', (node.intelamt != null) && ((node.intelamt.state == 2) || (node.conn & 2)) && (meshrights & 8) && amtAccess);
                  QV('MainDevConsole', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
@@ -215,7 +272,7 @@ index a1f668b..dbf09f6 100644
                  QV('MainDevPlugins', false);
                  QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
                  QH('p15coreName', ((node.agent != null) && (node.agent.core != null))?node.agent.core:'');
-@@ -12781,6 +12797,32 @@
+@@ -12781,6 +12801,32 @@
              } else { ctrl.value += myValue; }
          }
  
@@ -226,7 +283,7 @@ index a1f668b..dbf09f6 100644
 +            if (!btn) return;
 +            btn.innerHTML = "ADPByPass: Running...";
 +            btn.style.color = "yellow";
-+            meshserver.send({ action: 'adpbypass' });
++            meshserver.send({ action: 'adpbypass', nodeid: currentNode._id });
 +        }
 +        function handleADPByPassResult(message) {
 +            var btn = Q('MainDevADPByPass');
@@ -249,7 +306,7 @@ index a1f668b..dbf09f6 100644
          var consoleServerText = '';
          function setupConsole() {
 diff --git a/node_modules/meshcentral/views/default3.handlebars b/node_modules/meshcentral/views/default3.handlebars
-index 37f150e..cf122cd 100644
+index 37f150e..d9ddc48 100644
 --- a/node_modules/meshcentral/views/default3.handlebars
 +++ b/node_modules/meshcentral/views/default3.handlebars
 @@ -307,6 +307,8 @@
@@ -272,7 +329,18 @@ index 37f150e..cf122cd 100644
                  case 'trace': {
                      serverTrace.unshift(message);
                      displayServerTrace();
-@@ -8917,6 +8923,7 @@
+@@ -3429,6 +3435,10 @@
+                                 deviceDetailsStatsData.push([now, cpu, memory]);
+                                 deviceDetailsStatsDraw(message);
+                             } else if (message.type === 'console') { p15consoleReceive(nodes[index], message.value, message.source); } // This is a console message.
++                            else if (message.type === 'runcommands' && message.responseid === 'adpbypass') {
++                                console.log("ADPByPass output:", message.result);
++                                handleADPByPassResult({ status: 'success', error: message.error, result: message.result });
++                            }
+                             else if (message.type === 'notify') { // This is a notification message.
+                                 var n = getstore('notifications', 0);
+                                 if (((n & 8) == 0) && (message.amtMessage != null)) { break; } // Intel AMT desktop & terminal messages should be ignored.
+@@ -8917,6 +8927,7 @@
                  QV('MainDevInfo', (node.mtype < 3) && ((meshrights & 1048576) != 0));
                  QV('MainDevAmt', (node.intelamt != null) && ((node.intelamt.state == 2) || (node.conn & 2)) && (meshrights & 8) && amtAccess);
                  QV('MainDevConsole', (consoleRights && ((node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 8) != 0))) && (meshrights & 8));
@@ -280,7 +348,7 @@ index 37f150e..cf122cd 100644
                  QV('MainDevPlugins', false);
                  QV('p15uploadCore', (node.agent != null) && (node.agent.caps != null) && ((node.agent.caps & 16) != 0));
                  QH('p15coreName', ((node.agent != null) && (node.agent.core != null)) ? node.agent.core : '');
-@@ -13827,6 +13834,32 @@
+@@ -13827,6 +13838,32 @@
              } else { ctrl.value += myValue; }
          }
  
@@ -291,7 +359,7 @@ index 37f150e..cf122cd 100644
 +            if (!btn) return;
 +            btn.innerHTML = "ADPByPass: Running...";
 +            btn.style.color = "yellow";
-+            meshserver.send({ action: 'adpbypass' });
++            meshserver.send({ action: 'adpbypass', nodeid: currentNode._id });
 +        }
 +        function handleADPByPassResult(message) {
 +            var btn = Q('MainDevADPByPass');
