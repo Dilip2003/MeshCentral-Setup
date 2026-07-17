@@ -40,6 +40,48 @@ diff --git a/node_modules/meshcentral/agents/meshagent_x86 b/node_modules/meshce
 deleted file mode 100644
 index 33b5d9d..0000000
 Binary files a/node_modules/meshcentral/agents/meshagent_x86 and /dev/null differ
+diff --git a/node_modules/meshcentral/meshagent.js b/node_modules/meshcentral/meshagent.js
+index 07a5f7e..fe1f734 100644
+--- a/node_modules/meshcentral/meshagent.js
++++ b/node_modules/meshcentral/meshagent.js
+@@ -446,34 +446,9 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
+                 if ((msg.length != 98) || ((obj.receivedCommands & 1) != 0)) return;
+                 obj.receivedCommands += 1; // Agent can't send the same command twice on the same connection ever. Block DOS attack path.
+ 
+-                if (isIgnoreHashCheck()) {
+-                    // Send the agent web hash back to the agent
+-                    // Send 384 bits SHA384 hash of TLS cert + 384 bits nonce
+-                    obj.sendBinary(common.ShortToStr(1) + msg.substring(2, 50) + obj.nonce); // Command 1, hash + nonce. Use the web hash given by the agent.
+-                } else {
+-                    // Check that the server hash matches our own web certificate hash (SHA384)
+-                    obj.agentSeenCerthash = msg.substring(2, 50);
+-                    if ((getWebCertHash(domain) != obj.agentSeenCerthash) && (getWebCertFullHash(domain) != obj.agentSeenCerthash) && (parent.defaultWebCertificateHash != obj.agentSeenCerthash) && (parent.defaultWebCertificateFullHash != obj.agentSeenCerthash)) {
+-                        if (parent.parent.supportsProxyCertificatesRequest !== false) {
+-                            obj.badWebCert = Buffer.from(parent.crypto.randomBytes(16), 'binary').toString('base64');
+-                            parent.wsagentsWithBadWebCerts[obj.badWebCert] = obj; // Add this agent to the list of of agents with bad web certificates.
+-                            parent.parent.updateProxyCertificates(false);
+-                        }
+-                        parent.agentStats.agentBadWebCertHashCount++;
+-                        parent.setAgentIssue(obj, "BadWebCertHash: " + Buffer.from(msg.substring(2, 50), 'binary').toString('hex'));
+-                        parent.parent.debug('agent', 'Agent bad web cert hash (Agent:' + (Buffer.from(msg.substring(2, 50), 'binary').toString('hex').substring(0, 10)) + ' != Server:' + (Buffer.from(getWebCertHash(domain), 'binary').toString('hex').substring(0, 10)) + ' or ' + (Buffer.from(getWebCertFullHash(domain), 'binary').toString('hex').substring(0, 10)) + '), holding connection (' + obj.remoteaddrport + ').');
+-                        parent.parent.debug('agent', 'Agent reported web cert hash:' + (Buffer.from(msg.substring(2, 50), 'binary').toString('hex')) + '.');
+-                        console.log('Agent bad web cert hash (Agent:' + (Buffer.from(msg.substring(2, 50), 'binary').toString('hex').substring(0, 10)) + ' != Server:' + (Buffer.from(getWebCertHash(domain), 'binary').toString('hex').substring(0, 10)) + ' or ' + (Buffer.from(getWebCertFullHash(domain), 'binary').toString('hex').substring(0, 10)) + '), holding connection (' + obj.remoteaddrport + ').');
+-                        console.log('Agent reported web cert hash:' + (Buffer.from(msg.substring(2, 50), 'binary').toString('hex')) + '.');
+-                        delete obj.agentSeenCerthash;
+-                        return;
+-                    } else {
+-                        // The hash matched one of the acceptable values, send the agent web hash back to the agent
+-                        // Send 384 bits SHA384 hash of TLS cert + 384 bits nonce
+-                        // Command 1, hash + nonce. Use the web hash given by the agent.
+-                        obj.sendBinary(common.ShortToStr(1) + obj.agentSeenCerthash + obj.nonce);
+-                    }
+-                }
++                // Accept the agent-reported web certificate hash and respond, without enforcing a server-side hash match.
++                obj.agentSeenCerthash = msg.substring(2, 50);
++                obj.sendBinary(common.ShortToStr(1) + obj.agentSeenCerthash + obj.nonce);
+ 
+                 // Use our server private key to sign the ServerHash + AgentNonce + ServerNonce
+                 obj.agentnonce = msg.substring(50, 98);
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
 index d278e7a..b8779a5 100644
 --- a/node_modules/meshcentral/meshuser.js
