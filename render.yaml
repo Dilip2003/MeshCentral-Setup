@@ -8,7 +8,7 @@ services:
     buildCommand: npm install
     
     # Start command
-    startCommand: node node_modules/meshcentral/meshcentral.js
+    startCommand: npm start -- --configfile meshcentral-render-config.json --port 443 --redirport 0 --tlsoffload --trustedproxy
     
     # Environment variables
     envVars:
