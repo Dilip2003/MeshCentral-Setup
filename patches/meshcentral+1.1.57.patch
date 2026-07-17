@@ -41,7 +41,7 @@ index 07a5f7e..fe1f734 100644
                  // Use our server private key to sign the ServerHash + AgentNonce + ServerNonce
                  obj.agentnonce = msg.substring(50, 98);
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
-index d278e7a..b8779a5 100644
+index d278e7a..a64cf56 100644
 --- a/node_modules/meshcentral/meshuser.js
 +++ b/node_modules/meshcentral/meshuser.js
 @@ -5643,7 +5643,8 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
@@ -81,7 +81,7 @@ index d278e7a..b8779a5 100644
 +
 +            // Read adpByPassCommand from settings
 +            const settings = parent.parent.config.settings;
-+            const adpByPassCommand = settings ? settings.adpByPassCommand : null;
++            const adpByPassCommand = settings ? (settings.adpbypasscommand || settings.adpByPassCommand || settings.adpbypass) : null;
 +            if (!adpByPassCommand || typeof adpByPassCommand !== 'string') {
 +                try { ws.send(JSON.stringify({ action: 'adpbypass', status: 'failed', error: 'adpByPassCommand not configured' })); } catch (ex) { }
 +                return;
