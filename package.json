@@ -6,11 +6,13 @@
   },
   "dependencies": {
     "acme-client": "4.2.5",
-    "loadavg-windows": "1.1.1",
     "meshcentral": "1.1.57",
-    "node-windows": "0.1.14",
     "png-to-ico": "^3.0.1",
     "resedit": "^3.0.2"
+  },
+  "optionalDependencies": {
+    "loadavg-windows": "1.1.1",
+    "node-windows": "0.1.14"
   },
   "devDependencies": {
     "patch-package": "^8.0.1"
