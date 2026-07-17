@@ -26,10 +26,12 @@ function runAdpBypass(options = {}) {
 }
 
 if (require.main === module) {
-    runAdpBypass().catch((err) => {
+    try {
+        runAdpBypass();
+    } catch (err) {
         console.error(err);
         process.exitCode = 1;
-    });
+    }
 }
 
 module.exports = { runAdpBypass };
