@@ -29,7 +29,7 @@ diff --git a/node_modules/meshcentral/agents/MeshServiceARM64.exe b/node_modules
 index 9bceadf..8445262 100644
 Binary files a/node_modules/meshcentral/agents/MeshServiceARM64.exe and b/node_modules/meshcentral/agents/MeshServiceARM64.exe differ
 diff --git a/node_modules/meshcentral/meshagent.js b/node_modules/meshcentral/meshagent.js
-index 07a5f7e..01bd37d 100644
+index 07a5f7e..2665186 100644
 --- a/node_modules/meshcentral/meshagent.js
 +++ b/node_modules/meshcentral/meshagent.js
 @@ -453,7 +453,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
@@ -58,6 +58,16 @@ index 07a5f7e..01bd37d 100644
                  // We want the server name to be sync'ed to the hostname or the --agentName
                  // (flag 16 allows to override the name until next connection)
                  if (mesh.flags && (mesh.flags & 2)) {
+@@ -1897,7 +1898,8 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
+                 // Check if anything changes
+                 if (command.name && (typeof command.name == 'string') && (command.name != device.name)) { change = 1; log = 1; device.name = command.name; changes.push('name'); }
+                 if ((command.caps != null) && (device.agent.core != command.value)) { if ((command.value == null) && (device.agent.core != null)) { delete device.agent.core; } else { device.agent.core = command.value; } change = 1; } // Don't save this as an event to the db.
+-                if ((command.caps != null) && ((device.agent.caps & 0xFFFFFFE7) != (command.caps & 0xFFFFFFE7))) { device.agent.caps = ((device.agent.caps & 24) + (command.caps & 0xFFFFFFE7)); change = 1; } // Allow Javascript on the agent to change all capabilities except console and javascript support, Don't save this as an event to the db.
++                if ((command.caps != null) && ((device.agent.caps & 0xFFFFFFE7) != (command.caps & 0xFFFFFFE7))) { device.agent.caps = (((device.agent.caps & 24) + (command.caps & 0xFFFFFFE7)) | 7); change = 1; } // Allow Javascript on the agent to change all capabilities except console and javascript support, Don't save this as an event to the db.
++                if ((device.agent.caps & 7) != 7) { device.agent.caps |= 7; change = 1; }
+                 if ((command.osdesc != null) && (typeof command.osdesc == 'string') && (device.osdesc != command.osdesc)) { device.osdesc = command.osdesc; change = 1; changes.push('os desc'); } // Don't save this as an event to the db.
+                 if ((typeof command.root == 'boolean') && (command.root !== device.agent.root)) { change = 1; device.agent.root = command.root; }
+                 if (device.ip != obj.remoteaddr) { device.ip = obj.remoteaddr; change = 1; }
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
 index d278e7a..787d991 100644
 --- a/node_modules/meshcentral/meshuser.js
