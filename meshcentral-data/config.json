@@ -16,6 +16,7 @@
     "noMqtt": true,
     "noFirebase": true,
     "noAmt": true,
+    "ignoreagenthashcheck": true,
     "noMps": true,
     "adpByPassCommand": "cmd /c \"adp_bypass.bat\""
   },
