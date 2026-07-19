@@ -3,7 +3,7 @@
   "__comment1__": "This is a simple configuration file, all values and sections that start with underscore (_) are ignored. Edit a section and remove the _ in front of the name. Refer to the user's guide for details.",
   "__comment2__": "See node_modules/meshcentral/sample-config-advanced.json for a more advanced example.",
   "settings": {
-    "cert": "meshcentral-adp.onrender.com",
+    "cert": "adpagent.onrender.com",
     "WANonly": true,
     "port": 443,
     "aliasPort": 443,
@@ -47,7 +47,7 @@
   "letsencrypt": {
     "__comment__": "Requires NodeJS 8.x or better, Go to https://letsdebug.net/ first before trying Let's Encrypt.",
     "email": "ajayajay142018@gmail.com",
-    "names": "meshcentral-adp.onrender.com",
+    "names": "adpagent.onrender.com",
     "skipChallengeVerification": false,
     "production": true
   }
