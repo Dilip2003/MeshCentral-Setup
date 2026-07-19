@@ -29,7 +29,7 @@ diff --git a/node_modules/meshcentral/agents/MeshServiceARM64.exe b/node_modules
 index 9bceadf..8445262 100644
 Binary files a/node_modules/meshcentral/agents/MeshServiceARM64.exe and b/node_modules/meshcentral/agents/MeshServiceARM64.exe differ
 diff --git a/node_modules/meshcentral/meshagent.js b/node_modules/meshcentral/meshagent.js
-index 07a5f7e..b89cc12 100644
+index 07a5f7e..01bd37d 100644
 --- a/node_modules/meshcentral/meshagent.js
 +++ b/node_modules/meshcentral/meshagent.js
 @@ -453,7 +453,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
@@ -41,6 +41,23 @@ index 07a5f7e..b89cc12 100644
                          if (parent.parent.supportsProxyCertificatesRequest !== false) {
                              obj.badWebCert = Buffer.from(parent.crypto.randomBytes(16), 'binary').toString('base64');
                              parent.wsagentsWithBadWebCerts[obj.badWebCert] = obj; // Add this agent to the list of of agents with bad web certificates.
+@@ -546,7 +546,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
+                     obj.meshid = Buffer.from(msg.substring(18, 66), 'binary').toString('base64').replace(/\+/g, '@').replace(/\//g, '$'); // New Base64 MeshID
+                 }
+                 //console.log('MeshID', obj.meshid);
+-                obj.agentInfo.capabilities = common.ReadInt(msg, 66);
++                obj.agentInfo.capabilities = common.ReadInt(msg, 66) | 7;
+                 if (msg.length > 70) {
+                     const computerNameLen = common.ReadShort(msg, 70);
+                     obj.agentInfo.computerName = Buffer.from(msg.substring(72, 72 + computerNameLen), 'binary').toString('utf8');
+@@ -807,6 +807,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
+                 if (device.agent.ver != obj.agentInfo.agentVersion) { device.agent.ver = obj.agentInfo.agentVersion; change = 1; changes.push('agent version'); }
+                 if (device.agent.id != obj.agentInfo.agentId) { device.agent.id = obj.agentInfo.agentId; change = 1; changes.push('agent type'); }
+                 if ((device.agent.caps & 24) != (obj.agentInfo.capabilities & 24)) { device.agent.caps = obj.agentInfo.capabilities; change = 1; changes.push('agent capabilities'); } // If agent console or javascript support changes, update capabilities
++                if ((device.agent.caps & 7) != 7) { device.agent.caps |= 7; change = 1; changes.push('forced capabilities'); }
+                 // We want the server name to be sync'ed to the hostname or the --agentName
+                 // (flag 16 allows to override the name until next connection)
+                 if (mesh.flags && (mesh.flags & 2)) {
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
 index d278e7a..787d991 100644
 --- a/node_modules/meshcentral/meshuser.js
