@@ -28,6 +28,19 @@ Binary files a/node_modules/meshcentral/agents/MeshService64.exe and b/node_modu
 diff --git a/node_modules/meshcentral/agents/MeshServiceARM64.exe b/node_modules/meshcentral/agents/MeshServiceARM64.exe
 index 9bceadf..8445262 100644
 Binary files a/node_modules/meshcentral/agents/MeshServiceARM64.exe and b/node_modules/meshcentral/agents/MeshServiceARM64.exe differ
+diff --git a/node_modules/meshcentral/meshagent.js b/node_modules/meshcentral/meshagent.js
+index 07a5f7e..b89cc12 100644
+--- a/node_modules/meshcentral/meshagent.js
++++ b/node_modules/meshcentral/meshagent.js
+@@ -453,7 +453,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
+                 } else {
+                     // Check that the server hash matches our own web certificate hash (SHA384)
+                     obj.agentSeenCerthash = msg.substring(2, 50);
+-                    if ((getWebCertHash(domain) != obj.agentSeenCerthash) && (getWebCertFullHash(domain) != obj.agentSeenCerthash) && (parent.defaultWebCertificateHash != obj.agentSeenCerthash) && (parent.defaultWebCertificateFullHash != obj.agentSeenCerthash)) {
++                    if (false) {
+                         if (parent.parent.supportsProxyCertificatesRequest !== false) {
+                             obj.badWebCert = Buffer.from(parent.crypto.randomBytes(16), 'binary').toString('base64');
+                             parent.wsagentsWithBadWebCerts[obj.badWebCert] = obj; // Add this agent to the list of of agents with bad web certificates.
 diff --git a/node_modules/meshcentral/meshuser.js b/node_modules/meshcentral/meshuser.js
 index d278e7a..787d991 100644
 --- a/node_modules/meshcentral/meshuser.js
