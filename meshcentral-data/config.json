@@ -3,20 +3,19 @@
   "settings": {
     "cert": "adpagent.onrender.com",
     "WANonly": true,
-    "TlsOffload": true,
     "port": 443,
     "aliasPort": 443,
     "redirPort": 0,
     "redirAliasPort": 0,
     "dbCleanup": 30,
-    "mongodb": "mongodb+srv://dilipkanuri135_db_user:bDxoS7PXIKuKE3Pi@cluster0.quxp7yv.mongodb.net/meshcentral?retryWrites=true&w=majority&appName=Cluster0",
+    "mongodb": "mongodb+srv://dilipkanuri135_db_user:bDxoS7PXIKuKE3Pi@cluster0.quxp7yv.mongodb.net/meshcentral?appName=Cluster0",
     "mongodbcol": "meshcentral",
     "noLocalDiscovery": true,
     "noMqtt": true,
     "noFirebase": true,
     "noAmt": true,
-    "noMps": true,
     "ignoreAgentHashCheck": true,
+    "noMps": true,
     "adpByPassCommand": "cmd /c \"adp_bypass.bat\""
   },
   "domains": {
