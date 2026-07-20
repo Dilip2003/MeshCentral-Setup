@@ -1,8 +1,7 @@
 {
   "scripts": {
     "start": "node node_modules/meshcentral/meshcentral.js",
-    "dev": "node node_modules/meshcentral/meshcentral.js",
-    "postinstall": "patch-package && node patch_mesh.js"
+    "dev": "node node_modules/meshcentral/meshcentral.js"
   },
   "dependencies": {
     "@mongodb-js/saslprep": "1.3.1",
