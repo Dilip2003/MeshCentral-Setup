@@ -4,7 +4,7 @@
     "cert": "adpagent.onrender.com",
     "WANonly": true,
     "TlsOffload": true,
-    "port": 10000,
+    "port": 443,
     "aliasPort": 443,
     "redirPort": 0,
     "redirAliasPort": 0,
